@@ -28,7 +28,7 @@
 2. Εκτέλεσε το script:
 
    ```bash
-   python excel_merge_gui.py
+   python ExcelMergeGui.py
    ```
 3. Συμπλήρωσε τα πεδία και πάτησε «Έναρξη συγχώνευσης»
 
