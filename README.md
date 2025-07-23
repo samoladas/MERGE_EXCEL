@@ -54,7 +54,7 @@ project-folder/
 Μπορείς να το μετατρέψεις σε αυτόνομο αρχείο για Windows με:
 
 ```bash
-pyinstaller --noconsole --onefile --icon=icon.ico excel_merge_gui.py
+pyinstaller --noconsole --onefile --icon=icon.ico ExcelMergeGui.py
 ```
 
 ## 📄 Άδεια Χρήσης

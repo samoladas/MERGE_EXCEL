@@ -57,7 +57,7 @@ def update_sheet_list(folder, master_filename, selected_sheet, sheet_menu):
 # Κύρια συνάρτηση συγχώνευσης: διαβάζει τη 2η γραμμή (και κάτω) από κάθε αρχείο Excel στον φάκελο
 # και τις προσθέτει κάτω από την επικεφαλίδα του master αρχείου. Καταγράφει τα αποτελέσματα στο log.
 
-def merge_excel_rows(folder, master_filename, output_filename, sheet_name, log, progress=None):
+def merge_excel_rows(folder, master_filename, output_filename, sheet_name, log, progress=None, skip_rows=1):
     """
     Συγχωνεύει την 1η γραμμή από το master αρχείο και τις επόμενες (2+ γραμμές) από τα υπόλοιπα αρχεία Excel στον ίδιο φάκελο.
     Καταγράφει στο log την πρόοδο και τα σφάλματα, και ενημερώνει την progress bar εάν δοθεί.
@@ -84,8 +84,13 @@ def merge_excel_rows(folder, master_filename, output_filename, sheet_name, log, 
     try:
         master_path = os.path.join(folder, master_filename)
         master_df = pd.read_excel(master_path, sheet_name=sheet_name, engine='openpyxl', header=None)
-        header = master_df.iloc[0].tolist()
-        merged_data.append(header)
+        # header = master_df.iloc[0].tolist()
+        # merged_data.append(header)
+        # Παίρνουμε τις πρώτες skip_rows γραμμές ως επικεφαλίδα
+        for i in range(skip_rows):
+            if i < len(master_df):
+                merged_data.append(master_df.iloc[i].tolist())
+
     except Exception as e:
         log_message(f"❌ Σφάλμα στο αρχείο master ή στο φύλλο '{sheet_name}': {e}")
         return
@@ -100,7 +105,7 @@ def merge_excel_rows(folder, master_filename, output_filename, sheet_name, log, 
             df = pd.read_excel(filepath, sheet_name=sheet_name, engine='openpyxl', header=None)
             if len(df) >= 2:
                 rows_to_add = []
-                for i in range(1, len(df)):
+                for i in range(skip_rows, len(df)):
                     row = df.iloc[i]
                     if row.isnull().all() or all(str(cell).strip() == '' for cell in row):
                         break
@@ -201,7 +206,14 @@ def main():
 
         log_text.delete('1.0', END)
         progress_bar['value'] = 0
-        merge_excel_rows(folder, master, output, sheet, log_text, progress=progress_bar)
+
+        try:
+            skip_rows = int(skip_rows_entry.get())
+        except ValueError:
+            skip_rows = 1  # Αν ο χρήστης βάλει κάτι μη αριθμητικό
+
+        merge_excel_rows(folder, master, output, sheet, log_text, progress=progress_bar, skip_rows=skip_rows)
+
         save_log_to_file(folder, log_text)
 
     def browse_folder():
@@ -304,28 +316,34 @@ def main():
     sheet_menu.grid(row=3, column=1, padx=5, pady=3, sticky='ew')
     Button(window, text="🔄 Ανάγνωση φύλλων", font=button_font, command=lambda: update_sheet_list(folder_entry.get(), master_entry.get(), selected_sheet, sheet_menu)).grid(row=3, column=2)
 
-        # === Κουμπί έναρξης συγχώνευσης ===
-    Button(window, text="🚀 Έναρξη συγχώνευσης", font=button_font, command=start_merge).grid(row=4, column=1, pady=10)
+    # === Πεδίο για γραμμές προς αγνόηση ===
+    Label(window, text="Γραμμές προς αγνόηση:", font=label_font).grid(row=4, column=0, sticky='e')
+    skip_rows_entry = Entry(window, width=10, font=entry_font)
+    skip_rows_entry.insert(0, "1")  # Προεπιλογή να αγνοεί 1 γραμμή (επικεφαλίδα)
+    skip_rows_entry.grid(row=4, column=1, padx=5, pady=3, sticky='w')
+
+    # === Κουμπί έναρξης συγχώνευσης ===
+    Button(window, text="🚀 Έναρξη συγχώνευσης", font=button_font, command=start_merge).grid(row=5, column=1, pady=10)
 
         # === Μπάρα προόδου για παρακολούθηση ===
         # Το Progressbar είναι γραφική αναπαράσταση της προόδου επεξεργασίας
     progress_bar = ttk.Progressbar(window, orient="horizontal", length=400, mode="determinate")
-    progress_bar.grid(row=5, column=1, pady=5)
+    progress_bar.grid(row=6, column=1, pady=5)
 
         # === Περιοχή εμφάνισης log ===
         # Το Text widget είναι πολυγραμμικό πλαίσιο κειμένου για εμφάνιση των μηνυμάτων log
     log_text = Text(window, font=log_font)
-    log_text.grid(row=6, column=0, columnspan=3, padx=10, pady=10, sticky='nsew')
+    log_text.grid(row=7, column=0, columnspan=3, padx=10, pady=10, sticky='nsew')
 
         # Το Scrollbar συνδέεται με το log_text για κύλιση κάθετα
     scrollbar = Scrollbar(window, command=log_text.yview)
     log_text.configure(yscrollcommand=scrollbar.set)
-    scrollbar.grid(row=6, column=3, sticky='ns')
+    scrollbar.grid(row=7, column=3, sticky='ns')
 
         # === Επιλογή dark mode ===
         # Το Checkbutton προσθέτει επιλογή ενεργοποίησης/απενεργοποίησης Dark Mode
-    Checkbutton(window, text="🌙 Dark Mode", variable=dark_mode_var, command=toggle_dark_mode, font=button_font).grid(row=7, column=0, pady=5, sticky='w')
-    Button(window, text="❌ Κλείσιμο", font=button_font, command=close_app).grid(row=7, column=1, pady=5)
+    Checkbutton(window, text="🌙 Dark Mode", variable=dark_mode_var, command=toggle_dark_mode, font=button_font).grid(row=8, column=0, pady=5, sticky='w')
+    Button(window, text="❌ Κλείσιμο", font=button_font, command=close_app).grid(row=9, column=1, pady=5)
 
         # === Αυτόματη φόρτωση φύλλων από προεπιλεγμένο αρχείο ===
     update_sheet_list("merge_files", "master.xlsx", selected_sheet, sheet_menu)

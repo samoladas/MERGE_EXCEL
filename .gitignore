@@ -78,3 +78,9 @@
 /merge_files/ΧΕΙΜΑΡΡΟΣ.xlsx
 /merge_files/ΧΡΥΣΟ.xlsx
 /merge_files/ΨΥΧΙΚΟ.xlsx
+/excelmerger.py
+/merge_functions.py
+/mergeroptimized.py
+/mergeui1.py
+/.gitignore
+/merge_files/
